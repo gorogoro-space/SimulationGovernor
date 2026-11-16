@@ -1,0 +1,20 @@
+name: SimulationGovernor
+version: '${version}'
+api-version: '1.21.11'
+description: Lowers the simulation distance automatically while the server is under heavy load.
+author: kubotan
+main: space.gorogoro.simulationgovernor.SimulationGovernor
+
+commands:
+  simgov:
+    description: Shows the status and controls the automatic simulation distance (OP only).
+    usage: /simgov status | set <world> <distance> [seconds] | auto <on|off> | reload
+  simdist:
+    description: Shows the current simulation distance of your world.
+    usage: /simdist
+    permission: simulationgovernor.view
+
+permissions:
+  simulationgovernor.view:
+    description: Allows /simdist.
+    default: true

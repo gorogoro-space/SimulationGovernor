@@ -1,0 +1,87 @@
+# 自動の切り替えを有効にするか(/simgov auto で一時的に切り替えられる。/simgov reload でこの値に戻る)
+enabled: true
+# true のあいだは、シミュレーション距離を実際には変えない。
+# 「本来なら切り替えた」ことと、そのときの指標をログに残すだけ。
+dry-run: true
+# 1 分ごとの指標を plugins/SimulationGovernor/metrics/ に CSV で残す。
+metrics-log: true
+# 古い CSV を消すまでの日数(0 なら消さない)
+metrics-retention-days: 30
+# 対象のワールド(複数指定できる)。Bukkit のワールド名(ワールドのフォルダ名)で書く。
+# ここに書いていないワールドには、一切触らない
+worlds:
+  - world
+# 「ふだんの距離」の設定はない。プラグインが有効になった時点の各ワールドの距離を、そのワールドのふだんの距離として覚える
+# 重いときの距離(ふだんの距離のほうが小さければ、ふだんの距離)
+reduced-distance: 3
+# 差し迫ったときの距離(ふだんの距離のほうが小さければ、ふだんの距離)
+emergency-distance: 2
+# 判定の間隔(秒)
+check-interval-seconds: 5
+# 下げる判断に使う窓(秒)。この秒数の間の実測TPSで判断する
+window-seconds: 20
+# 下げる条件(ふだん→重いとき):窓の実測TPSがこの値を下回ったら下げる
+lower-threshold-tps: 19.2
+# 下げる条件(共通):窓の間に 50ms を超えた tick の割合が、この値以上であること。
+# 1回だけの長い停止(保存処理など)では下げないための条件
+lower-min-over50-ratio: 0.10
+# 緊急の条件(→緊急):窓の実測TPSがこの値を下回ったら、緊急の距離にする
+emergency-threshold-tps: 18.0
+# 緊急の条件(→緊急):あわせて、窓の間に 50ms を超えた tick の割合が、この値以上であること。
+# 1回の長い停止で緊急にならないための条件(lower-min-over50-ratio より大きくする)
+emergency-min-over50-ratio: 0.50
+# プラグインが有効になってから(サーバーの起動・プラグインの再読み込み)、この秒数は切り替えの判定をしない。
+# 起動直後のプレイヤーのログインやチャンクの読み込みによる一時的な重さで、距離を下げないため
+startup-grace-seconds: 300
+# 戻す条件:直近 restore-window-seconds 秒間で、restore-margin-mspt を超えた tick の割合が
+# restore-max-ratio 以下なら、1段階戻す
+restore-margin-mspt: 35.0
+restore-max-ratio: 0.01
+restore-window-seconds: 180
+# 一度切り替えたら、この秒数は次の切り替えをしない(緊急の条件で下げる場合は除く)
+# なお、距離を上げてから window-seconds の間は、緊急の条件でも下げない
+min-hold-seconds: 120
+# /simgov set で手動で変えたあと、そのワールドの自動の切り替えを止めておく秒数(コマンドで秒数を省いたとき)
+manual-hold-seconds: 300
+
+# メッセージ(自由に書き換えられる)
+# {world} ワールド名、{from} {to} {distance} 距離、{blocks} ブロック数の目安、{player} 実行した人
+# {tps} 実測TPS、{over50} 50ms超の割合(%)、{overmargin} restore-margin-mspt 超の割合(%)、{margin} restore-margin-mspt
+# {window} {restorewindow} 窓の秒数、{hold} 秒数、{avg} 平均MSPT
+messages:
+  # 距離が変わったときに OP へ出す通知(グレーの文字)
+  notify-lower: "[SimGov] {world}: 演算距離 {from} → {to}(自動 TPS {tps}, 50ms超 {over50}%)"
+  notify-emergency: "[SimGov] {world}: 演算距離 {from} → {to}(自動・緊急 TPS {tps}, 50ms超 {over50}%)"
+  notify-restore: "[SimGov] {world}: 演算距離 {from} → {to}(自動 {restorewindow}秒間の{margin}ms超 {overmargin}%)"
+  notify-manual: "[SimGov] {world}: 演算距離 {from} → {to}(手動 実行者 {player}、{hold}秒後に自動へ戻る)"
+  notify-manual-end: "[SimGov] {world}: 手動の固定が終わり、自動の切り替えに戻りました(演算距離 {distance})"
+  notify-disable: "[SimGov] {world}: 演算距離 {from} → {to}(プラグインの停止によりふだんの距離へ戻す)"
+  notify-reload: "[SimGov] {world}: 演算距離 {from} → {to}(対象から外れたため、ふだんの距離へ戻す)"
+  notify-manual-end-dryrun: "[SimGov] {world}: 演算距離 {from} → {to}(dry-run 中に手動の固定が終わったため、ふだんの距離へ戻す)"
+  notify-dryrun-on:"[SimGov] {world}: 演算距離 {from} → {to}(dry-run に入るため、ふだんの距離へ戻す)"
+  # dry-run 中の自動の切り替えの通知の先頭に付ける
+  dryrun-prefix: "[DRY-RUN] "
+  # /simdist
+  simdist-normal: "現在の演算距離: {distance} (プレイヤーから約{blocks}ブロックまで動きます)"
+  simdist-reduced: "現在の演算距離: {distance} (混雑のため、一時的に下げています。約{blocks}ブロックまで動きます)"
+  simdist-emergency: "現在の演算距離: {distance} (高負荷のため、緊急で下げています。約{blocks}ブロックまで動きます)"
+  simdist-console: "{world}: "
+  # /simgov
+  no-permission: "このコマンドは OP のみ使えます。"
+  usage: "使い方: /simgov status | set <ワールド> <距離> [秒] | auto <on|off> | reload"
+  status-header: "自動の切り替え: {auto}(判定の窓 {window}秒)"
+  status-stats: "直近{window}秒: TPS {tps}, 50ms超 {over50}%, 平均MSPT {avg} / 直近{restorewindow}秒: {margin}ms超 {overmargin}%"
+  status-stats-not-ready: "(まだ {window} 秒分の記録がそろっていません)"
+  status-grace: "(起動後の猶予中です。あと {grace} 秒は切り替えの判定をしません)"
+  status-world: "{world}: 演算距離 {distance}(ふだん {normal}、重いとき {reduced}、緊急 {emergency}){manual}"
+  status-world-manual: " 手動で固定中(残り {hold}秒)"
+  status-world-virtual: " / 仮の距離 {virtual}"
+  status-dryrun: "dry-run 中です(距離は実際には変えず、本来なら切り替えたことをログに残すだけです)"
+  status-none: "対象のワールドはありません。"
+  auto-on: "自動の切り替えを有効にしました。"
+  auto-off: "自動の切り替えを無効にしました。"
+  unknown-world: "対象のワールドではありません: {world}"
+  invalid-distance: "距離は 2〜{normal} の整数で指定してください(ふだんの距離より大きくはできません)。"
+  invalid-seconds: "秒数は 0 以上の整数で指定してください。"
+  set-done: "{world} の演算距離を {distance} にしました。{hold}秒後に自動の切り替えに戻ります。"
+  reloaded: "設定を読み直しました。"
